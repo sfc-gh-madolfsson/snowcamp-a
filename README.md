@@ -36,12 +36,21 @@ Run [setup/00_provision.sql](setup/00_provision.sql) then [setup/01_data.sql](se
 ## Gates
 
 ### G1 · Get to know your data  ·  *8 min*
+
 **Your task:** You've been handed commercial data across several domains and asked to build an agent on top of it. Before you build anything, get to know it. Build a mental map of the tables — what's in each one, what a single row represents, how they join. You should be able to describe exactly what's in these tables. Are there PII issues? Messy or inconsistent values? Investigate with Cortex Code and decide whether this data is actually ready to build an agent on.
 
-**Hints:**
-- Point Cortex Code at @SNOWCAMP_AGENTS.RAW so it reads real column names instead of guessing.
-- Ask for row counts, distinct values, and anything that looks wrong — not just a column list.
-- Whatever mess you find is deliberate. Note it now; you deal with it in the next gates.
+**Deliverable — what "done" looks like:**
+- A summary of each RAW table: what one row represents, roughly how many rows, and the join key.
+- A list of the columns holding personal data.
+- A list of the data-quality problems you found, with rough counts.
+
+**How to approach it** *(your prompts, your call)*:
+1. Give Cortex Code the schema as context (`@SNOWCAMP_AGENTS.RAW`) and ask it to inventory the tables and explain the grain of each.
+2. Pick the biggest tables and have it profile them — date ranges, distinct products and HCPs, nulls, anything suspicious.
+3. Ask specifically which columns look like personal data, and which fields have inconsistent values.
+4. Run one join across two tables to confirm you understand the keys.
+
+> **Watch out:** Ask for counts, not examples — "how many rows have a null HCP_ID" tells you far more than "show me some bad rows".
 
 **Check yourself:** Describe the grain of HCP_MASTER, PRESCRIPTIONS and FIELD_NOTES in one line each, then name the PII columns and the messiest fields.
 
@@ -50,12 +59,22 @@ Run [setup/00_provision.sql](setup/00_provision.sql) then [setup/01_data.sql](se
 **Skills that help:** `/sql-author` `/data-quality` `/cortex-code-guide`
 
 ### G2 · Teach it your business language  ·  *12 min*
-**Your task:** Your agent will get asked number questions — how many prescriptions, which territories are underperforming. It can't answer those reliably against raw messy tables, so give it a model to reason over. Build a semantic view using the language a commercial team actually speaks (HCP, product, territory, tier, month; total prescriptions, active prescribers, market penetration), validate it, and make sure the messy tier and country values you found don't skew the numbers.
 
-**Hints:**
-- Describe the business concepts you want — not SQL — and let Cortex Code build and validate the view.
-- If numbers look strange, it's the messy tier/country values. Ask it to standardize them inside the view.
-- Name it ANALYTICS.NN_COMMERCIAL_SEMANTIC_VIEW so later gates can find it.
+**Your task:** Your agent will get asked number questions — how many prescriptions, which territories are underperforming. It can't answer those reliably against raw messy tables, so give it a model to reason over. Build a semantic view using the language a commercial team actually speaks, validate it, and make sure the messy tier and country values you found don't skew the numbers.
+
+**Deliverable — what "done" looks like:**
+- A semantic view in `ANALYTICS` that validates cleanly (suggested name `NN_COMMERCIAL_SEMANTIC_VIEW`).
+- Dimensions covering HCP, product, territory, tier and month.
+- Metrics for total prescriptions, active prescribers and market penetration.
+- At least one verified query saved on the view.
+
+**How to approach it** *(your prompts, your call)*:
+1. Describe the dimensions and metrics you want in plain business language and let Cortex Code generate the view.
+2. Ask it to validate the view, then fix whatever it reports.
+3. Handle the messy tier and country values — standardize them inside the view rather than editing raw tables.
+4. Ask a real business question in plain English and sanity-check the numbers that come back.
+
+> **Watch out:** Negative quantities and null HCPs will quietly skew your metrics — decide whether to filter them in the view.
 
 **Check yourself:** Ask it in plain English: which territories are below average on penetration this quarter, and who are their top-tier HCPs?
 
@@ -64,11 +83,20 @@ Run [setup/00_provision.sql](setup/00_provision.sql) then [setup/01_data.sql](se
 **Skills that help:** `/semantic-view`
 
 ### G3 · Lock down the PII first  ·  *8 min*
-**Your task:** You spotted personal data in Gate 1 — names and emails of real prescribers. An agent that can read anything can also repeat anything, so protect it before you wire it up. Work out what's actually sensitive, mask it so only you can see raw values, and then prove the mask does what you think it does.
 
-**Hints:**
-- Describe the outcome — 'mask HCP names and emails from anyone who isn't me' — and let it write and apply the policy.
-- Proving it matters more than creating it. A policy you haven't tested is a policy you don't have.
+**Your task:** You spotted personal data in Gate 1 — names and emails of real prescribers. An agent that can read anything can also repeat anything, so protect it before you wire it up. Work out what's actually sensitive, mask it so only you can see raw values, then prove the mask does what you think it does.
+
+**Deliverable — what "done" looks like:**
+- The sensitive columns in HCP_MASTER classified or tagged.
+- A masking policy applied to at least the HCP name and email.
+- Evidence it works: the same query run as a privileged and an unprivileged role.
+
+**How to approach it** *(your prompts, your call)*:
+1. Ask Cortex Code to identify and classify the sensitive columns for you.
+2. Describe the masking behaviour you want — who sees raw, who sees masked — and let it write and apply the policy.
+3. Test it: read those columns from a role without access, then as yourself, and compare.
+
+> **Watch out:** You're ACCOUNTADMIN, so you'll always see raw values. You must test as another role or you've proven nothing.
 
 **Check yourself:** Read the PII columns as a role without access, then as yourself, and compare.
 
@@ -77,25 +105,46 @@ Run [setup/00_provision.sql](setup/00_provision.sql) then [setup/01_data.sql](se
 **Skills that help:** `/data-governance`
 
 ### G4 · Make the free text searchable  ·  *10 min*
-**Your task:** Half of what your field team needs isn't in a table at all — it's buried in 40,000 rep call notes, medical inquiries and market-access notes. Make that text searchable so your agent can actually quote it. Stand up a Cortex Search service over the notes, keep the attributes that matter for filtering and citation, and test it with a question a real rep would ask.
 
-**Hints:**
-- Point search at the note text and keep DOC_TYPE, HCP_ID, REGION and NOTE_DATE as attributes; skip the empty notes.
-- Test with a theme rather than an exact keyword — then judge whether the top hits are genuinely about it.
+**Your task:** Half of what your field team needs isn't in a table at all — it's buried in 40,000 rep call notes, medical inquiries and market-access notes. Make that text searchable so your agent can actually quote it, and test it with a question a real rep would ask.
 
-**Check yourself:** Search something like 'formulary access barriers' and check the top 5 are really about market access, with their doc type and HCP.
+**Deliverable — what "done" looks like:**
+- A Cortex Search service over the note text (suggested name `ANALYTICS.NN_DOCS_SEARCH`).
+- `DOC_TYPE`, `HCP_ID`, `REGION` and `NOTE_DATE` available as attributes.
+- A test search whose top hits are genuinely on-topic.
+
+**How to approach it** *(your prompts, your call)*:
+1. Point Cortex Code at the notes table and ask it to build a search service over the text column, keeping the attributes you'd filter or cite by.
+2. Exclude the rows with empty note text.
+3. Search a commercial theme and inspect the top hits — are they really about it?
+4. Try a second, different theme to see how well it generalizes.
+
+> **Watch out:** Give the service a moment to finish indexing before you judge result quality.
+
+**Check yourself:** Search something like "formulary access barriers" and check the top 5 are really about market access, with their doc type and HCP.
 
 **Gate:** Your search service returns relevant notes with useful attributes.
 
 **Skills that help:** `/search-optimization`
 
 ### G5 · Assemble the copilot  ·  *15 min*
-**Your task:** Now put it together. Build one agent that can reach into both worlds: the semantic view when someone wants numbers, the notes when they want to know why. Give each tool a description clear enough that the agent reliably picks the right one, teach it how to route and blend the two, and shape how it answers — lead with the answer, show the numbers, quote the notes, recommend a next action. Then go try to break it in Snowflake Intelligence.
 
-**Hints:**
-- Three layers: the tools it can call, the orchestration that decides which to use, and the response format. Build them in that order.
-- Blended questions are the real test — numbers first to find who, then notes to explain why.
-- If the Analyst tool errors on permissions, it needs REFERENCES on the semantic view (provision file, section 4).
+**Your task:** Now put it together. Build one agent that can reach into both worlds: the semantic view when someone wants numbers, the notes when they want to know why. Teach it how to route and blend the two, shape how it answers, then go try to break it in Snowflake Intelligence.
+
+**Deliverable — what "done" looks like:**
+- One agent (suggested name `NN_COMMERCIAL_AGENT`) with two tools: Cortex Analyst on your semantic view and Cortex Search on your notes.
+- A clear description on each tool so the agent knows when to use which.
+- Orchestration instructions: numbers to Analyst, why/themes to Search, blend for mixed questions.
+- Response instructions: a one-line answer, a metrics table, 2-3 cited note quotes, and a recommended next action.
+
+**How to approach it** *(your prompts, your call)*:
+1. Create the agent and attach both tools, writing a crisp description for each.
+2. Set the orchestration instructions so routing is unambiguous, including what to do with a blended question.
+3. Set the response instructions so every answer has the same shape and cites its sources.
+4. Test in Snowflake Intelligence: a numbers-only question, a notes-only question, then a blended one.
+5. Have `/agent-optimization` review the tool descriptions and routing, then tune.
+
+> **Watch out:** If the Analyst tool errors on permissions, the agent's role needs REFERENCES (not just SELECT) on the semantic view — see the provision file, section 4.
 
 **Check yourself:** Ask: who are my top-tier underperforming HCPs in the Nordics, and what have reps noted about them? Watch which tools it calls.
 
@@ -104,12 +153,19 @@ Run [setup/00_provision.sql](setup/00_provision.sql) then [setup/01_data.sql](se
 **Skills that help:** `/cortex-agent` `/agent-optimization` `/cortex-chart-customization`
 
 ### GF · Put it in someone's hands  ·  *7 min*
-**Your task:** An agent nobody can reach isn't much use. Ship it as a Streamlit app running on the container runtime (SPCS). How far you take it is your call — a focused results view with a chat box and a few KPIs, or a full app with territory and tier filters and drill-downs. Get it deployed and open the URL.
 
-**Hints:**
-- Deploy on the container runtime: RUNTIME_NAME='SYSTEM$ST_CONTAINER_RUNTIME_PY3_11', COMPUTE_POOL=SNOWCAMP_AGENTS_POOL, QUERY_WAREHOUSE=SNOWCAMP_AGENTS_WH.
-- Describe the UI you want, deploy it, then iterate — add one filter and redeploy.
-- First launch can be slow while the compute pool wakes up. That's normal.
+**Your task:** An agent nobody can reach isn't much use. Ship it as a Streamlit app running on the container runtime (SPCS). How far you take it is your call — a focused results view, or a full app with filters and drill-downs.
+
+**Deliverable — what "done" looks like:**
+- A Streamlit app deployed on the container runtime with a working URL.
+- Your choice: a results view (chat to the agent plus a few KPIs) or a fuller app with territory and tier filters.
+
+**How to approach it** *(your prompts, your call)*:
+1. Describe the UI you want and let Cortex Code build the app.
+2. Deploy it on the container runtime using your track's compute pool and warehouse.
+3. Open the URL and actually use it — then change one thing and redeploy.
+
+> **Watch out:** Deploy with RUNTIME_NAME='SYSTEM$ST_CONTAINER_RUNTIME_PY3_11', COMPUTE_POOL=SNOWCAMP_AGENTS_POOL, QUERY_WAREHOUSE=SNOWCAMP_AGENTS_WH. The first launch is slow while the pool starts — that's normal.
 
 **Check yourself:** Open the app URL and ask your Nordics question in the app's own chat.
 

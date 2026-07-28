@@ -82,6 +82,12 @@
   .prereq{ max-width:1000px; margin:22px auto -4px; padding:14px 18px; background:#eef5fb; border:1px solid var(--line); border-left:4px solid var(--accent-d); border-radius:10px; font-size:.9rem; color:var(--ink); }
   .prereq b{ color:var(--accent-dd); } .prereq code{ font-family:"SFMono-Regular",Consolas,monospace; font-size:.85em; background:#dcebf7; padding:1px 5px; border-radius:4px; }
   .prereq.bonus{ border-left-color:var(--ok); background:#eef9f0; margin:8px auto 30px; } .prereq.bonus b{ color:var(--ok); } .prereq.bonus code{ background:#d7f0dd; }
+  .deliver, .approach{ margin:4px 0 0 24px; font-size:.93rem; color:var(--ink); }
+  .deliver li, .approach li{ margin:5px 0; line-height:1.5; }
+  .deliver li::marker{ color:var(--ok); } .approach li::marker{ color:var(--accent-dd); font-weight:800; }
+  .watch{ background:#fff8e8; border:1px solid #f0dcb0; border-left:3px solid #d69a1a; border-radius:0 8px 8px 0; padding:9px 14px; margin:14px 0 0; font-size:.9rem; color:#5c4405; }
+  .watch b{ color:#a8730a; }
+  .deliver c, .approach c, .watch c, .validate c{ font-family:"SFMono-Regular",Consolas,monospace; font-size:.88em; background:#e7f1fa; padding:1px 5px; border-radius:4px; color:var(--code-ink); font-style:normal; }
   footer{ text-align:center; color:var(--muted); font-size:.8rem; padding:0 0 40px; }
   .step.finale .s-num{ background:linear-gradient(135deg,#16a34a,#29B5E8); }
 </style>
@@ -112,48 +118,80 @@
 const GATES = [
   { n:"1", title:"Get to know your data", min:"8 min",
     achieve:"You've been handed commercial data across several domains and asked to build an agent on top of it. Before you build anything, get to know it. Build a mental map of the tables \u2014 what's in each one, what a single row represents, how they join. You should be able to describe exactly what's in these tables. Are there PII issues? Messy or inconsistent values? Investigate with Cortex Code and decide whether this data is actually ready to build an agent on.",
+    deliver:["A summary of each RAW table: what one row represents, roughly how many rows, and the join key.",
+              "A list of the columns holding personal data.",
+              "A list of the data-quality problems you found, with rough counts."],
+    approach:["Give Cortex Code the schema as context (<c>@SNOWCAMP_AGENTS.RAW</c>) and ask it to inventory the tables and explain the grain of each.",
+               "Pick the biggest tables and have it profile them \u2014 date ranges, distinct products and HCPs, nulls, anything suspicious.",
+               "Ask specifically which columns look like personal data, and which fields have inconsistent values.",
+               "Run one join across two tables to confirm you understand the keys."],
+    watch:"Ask for counts, not examples \u2014 \"how many rows have a null HCP_ID\" tells you far more than \"show me some bad rows\".",
     skills:["/sql-author","/data-quality","/cortex-code-guide"],
-    think:["Point Cortex Code at @SNOWCAMP_AGENTS.RAW so it reads real column names instead of guessing.",
-           "Ask for row counts, distinct values, and anything that looks wrong \u2014 not just a column list.",
-           "Whatever mess you find is deliberate. Note it now; you deal with it in the next gates."],
     validate:"Describe the grain of HCP_MASTER, PRESCRIPTIONS and FIELD_NOTES in one line each, then name the PII columns and the messiest fields.",
     gate:"You can explain what's in the data, and you've found the PII and the messy values." },
   { n:"2", title:"Teach it your business language", min:"12 min",
-    achieve:"Your agent will get asked number questions \u2014 how many prescriptions, which territories are underperforming. It can't answer those reliably against raw messy tables, so give it a model to reason over. Build a semantic view using the language a commercial team actually speaks (HCP, product, territory, tier, month; total prescriptions, active prescribers, market penetration), validate it, and make sure the messy tier and country values you found don't skew the numbers.",
+    achieve:"Your agent will get asked number questions \u2014 how many prescriptions, which territories are underperforming. It can't answer those reliably against raw messy tables, so give it a model to reason over. Build a semantic view using the language a commercial team actually speaks, validate it, and make sure the messy tier and country values you found don't skew the numbers.",
+    deliver:["A semantic view in <c>ANALYTICS</c> that validates cleanly (suggested name <c>NN_COMMERCIAL_SEMANTIC_VIEW</c>).",
+              "Dimensions covering HCP, product, territory, tier and month.",
+              "Metrics for total prescriptions, active prescribers and market penetration.",
+              "At least one verified query saved on the view."],
+    approach:["Describe the dimensions and metrics you want in plain business language and let Cortex Code generate the view.",
+               "Ask it to validate the view, then fix whatever it reports.",
+               "Handle the messy tier and country values \u2014 standardize them inside the view rather than editing raw tables.",
+               "Ask a real business question in plain English and sanity-check the numbers that come back."],
+    watch:"Negative quantities and null HCPs will quietly skew your metrics \u2014 decide whether to filter them in the view.",
     skills:["/semantic-view"],
-    think:["Describe the business concepts you want \u2014 not SQL \u2014 and let Cortex Code build and validate the view.",
-           "If numbers look strange, it's the messy tier/country values. Ask it to standardize them inside the view.",
-           "Name it ANALYTICS.NN_COMMERCIAL_SEMANTIC_VIEW so later gates can find it."],
     validate:"Ask it in plain English: which territories are below average on penetration this quarter, and who are their top-tier HCPs?",
     gate:"The semantic view validates and Cortex Analyst answers a real business question sensibly." },
   { n:"3", title:"Lock down the PII first", min:"8 min",
-    achieve:"You spotted personal data in Gate 1 \u2014 names and emails of real prescribers. An agent that can read anything can also repeat anything, so protect it before you wire it up. Work out what's actually sensitive, mask it so only you can see raw values, and then prove the mask does what you think it does.",
+    achieve:"You spotted personal data in Gate 1 \u2014 names and emails of real prescribers. An agent that can read anything can also repeat anything, so protect it before you wire it up. Work out what's actually sensitive, mask it so only you can see raw values, then prove the mask does what you think it does.",
+    deliver:["The sensitive columns in HCP_MASTER classified or tagged.",
+              "A masking policy applied to at least the HCP name and email.",
+              "Evidence it works: the same query run as a privileged and an unprivileged role."],
+    approach:["Ask Cortex Code to identify and classify the sensitive columns for you.",
+               "Describe the masking behaviour you want \u2014 who sees raw, who sees masked \u2014 and let it write and apply the policy.",
+               "Test it: read those columns from a role without access, then as yourself, and compare."],
+    watch:"You're ACCOUNTADMIN, so you'll always see raw values. You must test as another role or you've proven nothing.",
     skills:["/data-governance"],
-    think:["Describe the outcome \u2014 'mask HCP names and emails from anyone who isn't me' \u2014 and let it write and apply the policy.",
-           "Proving it matters more than creating it. A policy you haven't tested is a policy you don't have."],
     validate:"Read the PII columns as a role without access, then as yourself, and compare.",
     gate:"PII is classified and masked \u2014 masked for others, readable for you." },
   { n:"4", title:"Make the free text searchable", min:"10 min",
-    achieve:"Half of what your field team needs isn't in a table at all \u2014 it's buried in 40,000 rep call notes, medical inquiries and market-access notes. Make that text searchable so your agent can actually quote it. Stand up a Cortex Search service over the notes, keep the attributes that matter for filtering and citation, and test it with a question a real rep would ask.",
+    achieve:"Half of what your field team needs isn't in a table at all \u2014 it's buried in 40,000 rep call notes, medical inquiries and market-access notes. Make that text searchable so your agent can actually quote it, and test it with a question a real rep would ask.",
+    deliver:["A Cortex Search service over the note text (suggested name <c>ANALYTICS.NN_DOCS_SEARCH</c>).",
+              "<c>DOC_TYPE</c>, <c>HCP_ID</c>, <c>REGION</c> and <c>NOTE_DATE</c> available as attributes.",
+              "A test search whose top hits are genuinely on-topic."],
+    approach:["Point Cortex Code at the notes table and ask it to build a search service over the text column, keeping the attributes you'd filter or cite by.",
+               "Exclude the rows with empty note text.",
+               "Search a commercial theme and inspect the top hits \u2014 are they really about it?",
+               "Try a second, different theme to see how well it generalizes."],
+    watch:"Give the service a moment to finish indexing before you judge result quality.",
     skills:["/search-optimization"],
-    think:["Point search at the note text and keep DOC_TYPE, HCP_ID, REGION and NOTE_DATE as attributes; skip the empty notes.",
-           "Test with a theme rather than an exact keyword \u2014 then judge whether the top hits are genuinely about it."],
-    validate:"Search something like 'formulary access barriers' and check the top 5 are really about market access, with their doc type and HCP.",
+    validate:"Search something like \"formulary access barriers\" and check the top 5 are really about market access, with their doc type and HCP.",
     gate:"Your search service returns relevant notes with useful attributes." },
   { n:"5", title:"Assemble the copilot", min:"15 min",
-    achieve:"Now put it together. Build one agent that can reach into both worlds: the semantic view when someone wants numbers, the notes when they want to know why. Give each tool a description clear enough that the agent reliably picks the right one, teach it how to route and blend the two, and shape how it answers \u2014 lead with the answer, show the numbers, quote the notes, recommend a next action. Then go try to break it in Snowflake Intelligence.",
+    achieve:"Now put it together. Build one agent that can reach into both worlds: the semantic view when someone wants numbers, the notes when they want to know why. Teach it how to route and blend the two, shape how it answers, then go try to break it in Snowflake Intelligence.",
+    deliver:["One agent (suggested name <c>NN_COMMERCIAL_AGENT</c>) with two tools: Cortex Analyst on your semantic view and Cortex Search on your notes.",
+              "A clear description on each tool so the agent knows when to use which.",
+              "Orchestration instructions: numbers to Analyst, why/themes to Search, blend for mixed questions.",
+              "Response instructions: a one-line answer, a metrics table, 2-3 cited note quotes, and a recommended next action."],
+    approach:["Create the agent and attach both tools, writing a crisp description for each.",
+               "Set the orchestration instructions so routing is unambiguous, including what to do with a blended question.",
+               "Set the response instructions so every answer has the same shape and cites its sources.",
+               "Test in Snowflake Intelligence: a numbers-only question, a notes-only question, then a blended one.",
+               "Have <c>/agent-optimization</c> review the tool descriptions and routing, then tune."],
+    watch:"If the Analyst tool errors on permissions, the agent's role needs REFERENCES (not just SELECT) on the semantic view \u2014 see the provision file, section 4.",
     skills:["/cortex-agent","/agent-optimization","/cortex-chart-customization"],
-    think:["Three layers: the tools it can call, the orchestration that decides which to use, and the response format. Build them in that order.",
-           "Blended questions are the real test \u2014 numbers first to find who, then notes to explain why.",
-           "If the Analyst tool errors on permissions, it needs REFERENCES on the semantic view (provision file, section 4)."],
     validate:"Ask: who are my top-tier underperforming HCPs in the Nordics, and what have reps noted about them? Watch which tools it calls.",
     gate:"One question makes it use both tools and answer in your instructed format, with citations." },
   { n:"F", title:"Put it in someone's hands", min:"7 min", dom:"final gate", finale:true,
-    achieve:"An agent nobody can reach isn't much use. Ship it as a Streamlit app running on the container runtime (SPCS). How far you take it is your call \u2014 a focused results view with a chat box and a few KPIs, or a full app with territory and tier filters and drill-downs. Get it deployed and open the URL.",
+    achieve:"An agent nobody can reach isn't much use. Ship it as a Streamlit app running on the container runtime (SPCS). How far you take it is your call \u2014 a focused results view, or a full app with filters and drill-downs.",
+    deliver:["A Streamlit app deployed on the container runtime with a working URL.",
+              "Your choice: a results view (chat to the agent plus a few KPIs) or a fuller app with territory and tier filters."],
+    approach:["Describe the UI you want and let Cortex Code build the app.",
+               "Deploy it on the container runtime using your track's compute pool and warehouse.",
+               "Open the URL and actually use it \u2014 then change one thing and redeploy."],
+    watch:"Deploy with RUNTIME_NAME='SYSTEM$ST_CONTAINER_RUNTIME_PY3_11', COMPUTE_POOL=SNOWCAMP_AGENTS_POOL, QUERY_WAREHOUSE=SNOWCAMP_AGENTS_WH. The first launch is slow while the pool starts \u2014 that's normal.",
     skills:["/developing-with-streamlit-in-snowflake"],
-    think:["Deploy on the container runtime: RUNTIME_NAME='SYSTEM$ST_CONTAINER_RUNTIME_PY3_11', COMPUTE_POOL=SNOWCAMP_AGENTS_POOL, QUERY_WAREHOUSE=SNOWCAMP_AGENTS_WH.",
-           "Describe the UI you want, deploy it, then iterate \u2014 add one filter and redeploy.",
-           "First launch can be slow while the compute pool wakes up. That's normal."],
     validate:"Open the app URL and ask your Nordics question in the app's own chat.",
     gate:"The app is live on the container runtime and answers in the UI." },
 ];
@@ -187,11 +225,14 @@ function render(){
       </div>
       <div class="s-body">
         <div class="goalbox"><b>Your task:</b> ${g.achieve}</div>
+        <div class="label">Deliverable — what "done" looks like</div>
+        <ul class="deliver">${g.deliver.map(d=>`<li>${d}</li>`).join("")}</ul>
+        <div class="label">How to approach it — your prompts, your call</div>
+        <ol class="approach">${g.approach.map(a=>`<li>${a}</li>`).join("")}</ol>
+        ${g.watch?`<div class="watch"><b>Watch out:</b> ${g.watch}</div>`:""}
         <div class="label">Skills that help</div>
         <div class="skills">${g.skills.map(s=>`<span class="s">${s}</span>`).join("")}</div>
-        <div class="label">Think</div>
-        ${g.think.map(t=>`<div class="think">${t}</div>`).join("")}
-        <div class="label">Validate — check yourself</div>
+        <div class="label">Check yourself</div>
         <div class="validate"><b>Try:</b> ${g.validate}</div>
         <div class="gate"><b>Gate:</b> ${g.gate}</div>
         <div class="actions">
