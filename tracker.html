@@ -81,6 +81,7 @@
   .btn.primary{ background:var(--done); border-color:var(--done); color:#fff; } .btn.primary:hover{ filter:brightness(1.05); color:#fff; }
   .prereq{ max-width:1000px; margin:22px auto -4px; padding:14px 18px; background:#eef5fb; border:1px solid var(--line); border-left:4px solid var(--accent-d); border-radius:10px; font-size:.9rem; color:var(--ink); }
   .prereq b{ color:var(--accent-dd); } .prereq code{ font-family:"SFMono-Regular",Consolas,monospace; font-size:.85em; background:#dcebf7; padding:1px 5px; border-radius:4px; }
+  .prereq.bonus{ border-left-color:var(--ok); background:#eef9f0; margin:8px auto 30px; } .prereq.bonus b{ color:var(--ok); } .prereq.bonus code{ background:#d7f0dd; }
   footer{ text-align:center; color:var(--muted); font-size:.8rem; padding:0 0 40px; }
   .step.finale .s-num{ background:linear-gradient(135deg,#16a34a,#29B5E8); }
 </style>
@@ -104,13 +105,13 @@
   </div>
   <div class="now" id="nowLine"></div>
 </header>
-<div class="prereq"><b>Pre-req &mdash; do this first:</b> create an <b>AGENTS.md</b> at your Workspace root so Cortex Code follows your conventions all session (database <code>SNOWCAMP_AGENTS</code>, warehouse <code>SNOWCAMP_AGENTS_WH</code>, fully-qualify objects, explain SQL, protect PII). Ask Cortex Code to create it, or copy <code>shared/AGENTS.starter.md</code>. You already run as ACCOUNTADMIN &mdash; no role switch needed. See the mission brief for the full how/why.</div>
 <div class="wrap" id="wrap"></div>
+<div class="prereq bonus"><b>Bonus &mdash; do it again with one command:</b> after the final gate, take the whole workflow you just built and ask Cortex Code to capture it as a reusable <b>skill</b> (<code>/skill-development</code>), then invoke it on a fresh schema. See the mission brief's <b>Bonus</b>.</div>
 <footer>Progress saves in this browser. Prompts are yours to invent — the gates only tell you what to achieve.</footer>
 <script>
 const GATES = [
   { n:"1", title:"Orient & explore", min:"8 min",
-    achieve:"You already run as ACCOUNTADMIN (no role switch) and your AGENTS.md is set from the pre-req. Have Cortex Code map the structured tables + the text notes, and note the grain of each.",
+    achieve:"You already run as ACCOUNTADMIN (no role switch). Have Cortex Code map the structured tables + the text notes, and note the grain of each.",
     skills:["/cortex-code-guide","/sql-author"],
     think:["No role switch needed — you're already ACCOUNTADMIN. If you ever hit 'not authorized', it's usually a missing grant, not the role.",
            "Point it at @SNOWCAMP_AGENTS.RAW so it reads real columns; ask what one row means in each table. PII + messy values are planted on purpose — you handle those in G2/G3."],

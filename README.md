@@ -6,7 +6,7 @@
 1. [`setup/00_provision.sql`](setup/00_provision.sql)
 2. [`setup/01_data.sql`](setup/01_data.sql)
 
-**Gate tracker:** [open it live](https://htmlpreview.github.io/?https://raw.githubusercontent.com/sfc-gh-madolfsson/snowcamp-buildathon-track-a-agents/main/tracker.html) - or [view the file](tracker.html) &nbsp;|&nbsp; **Primer:** [how to prompt Cortex Code](shared/prompting-primer.md) &nbsp;|&nbsp; **AGENTS.md starter:** [shared/AGENTS.starter.md](shared/AGENTS.starter.md)
+**Gate tracker:** [open it live](https://htmlpreview.github.io/?https://raw.githubusercontent.com/sfc-gh-madolfsson/snowcamp-buildathon-track-a-agents/main/tracker.html) - or [view the file](tracker.html) &nbsp;|&nbsp; **Primer:** [how to prompt Cortex Code](shared/prompting-primer.md) &nbsp;|&nbsp; **AGENTS.md (optional):** [shared/AGENTS.starter.md](shared/AGENTS.starter.md)
 
 ---
 
@@ -31,19 +31,14 @@ Novo Nordisk field teams ask the same questions every week: *who* to engage and 
 ## Setup (once)
 Run [setup/00_provision.sql](setup/00_provision.sql) then [setup/01_data.sql](setup/01_data.sql) — open each file, copy, paste into a Snowsight SQL worksheet, and Run All.
 
-## Pre-req — create your `AGENTS.md` (do this first, before the gates)
-**What it is & why:** `AGENTS.md` is a plain-markdown file at your Workspace root that Cortex Code reads at the start of *every* conversation. It's how you set your conventions **once** — which database/warehouse to use, to fully-qualify object names, to explain SQL before running it, to protect PII — instead of repeating them in each prompt. This isn't part of a normal ad-hoc session; for the buildathon we treat it as a given first step so Cortex Code works the way you want from the start.
-
-**How (pick one):**
-- Ask Cortex Code to create it — e.g. *"Create an AGENTS.md at my workspace root: use database `SNOWCAMP_AGENTS` and warehouse `SNOWCAMP_AGENTS_WH`, always fully-qualify objects as DB.SCHEMA.OBJECT, explain SQL before running it, and never expose unmasked HCP PII."*
-- Or copy [shared/AGENTS.starter.md](shared/AGENTS.starter.md) into a new file named `AGENTS.md` at your workspace root and fill in the placeholders.
+> **Tip (optional):** you can set conventions once in an `AGENTS.md` at your Workspace root (start from [shared/AGENTS.starter.md](shared/AGENTS.starter.md)) so Cortex Code always uses your database/warehouse, fully-qualifies objects, and protects PII. Not required — skip it and just tell Cortex Code your rules as you go.
 
 ---
 
 ## Gates
 
 ### G1 · Orient & set your rules
-**Achieve:** you start in **ACCOUNTADMIN** by default — no role switch needed (with your `AGENTS.md` from the pre-req already in place). Build a mental map of the structured tables and the text notes.
+**Achieve:** you start in **ACCOUNTADMIN** by default — no role switch needed. Build a mental map of the structured tables and the text notes.
 **Validate:** you can describe the grain of `HCP_MASTER`, `PRESCRIPTIONS`, and `FIELD_NOTES`, and you spotted the PII and the messy values.
 **Skills:** `/cortex-code-guide` `/sql-author`
 
@@ -77,3 +72,7 @@ Run [setup/00_provision.sql](setup/00_provision.sql) then [setup/01_data.sql](se
 ## Stretch (fast finishers)
 - Add a third agent tool (a SQL tool computing a custom "call-to-Rx" ratio) and re-run `/agent-optimization` to confirm routing still holds.
 - Add a row-access policy so a rep only sees their own territory, and prove the agent respects it.
+
+## Bonus — capture it as a reusable skill
+Finished early? Take the whole workflow you just built — explore → semantic view → mask PII → Cortex Search → agent → Streamlit — and ask Cortex Code to turn it into a **custom skill**, so you (or your team) can run the same build on a new dataset with one command. Try: *"Create a skill that encodes the steps we just did, then invoke it on a fresh RAW schema and show me the plan."*
+**Skills:** `/skill-development` `/skill-architect`
