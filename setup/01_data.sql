@@ -114,31 +114,102 @@ FROM TABLE(GENERATOR(ROWCOUNT => 50000));
    INCONSISTENCY: ~2% empty text; ~3% blank HCP ref
    ===================================================================== */
 CREATE OR REPLACE TABLE SNOWCAMP_AGENTS.RAW.FIELD_NOTES AS
+WITH hcp AS (
+  -- de-duplicate the 500 planted duplicate HCP_IDs so notes stay 1:1 with the seed
+  SELECT HCP_ID, HCP_FULL_NAME, SPECIALTY
+  FROM SNOWCAMP_AGENTS.RAW.HCP_MASTER
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY HCP_ID ORDER BY ONBOARDED_DATE) = 1
+),
+seed AS (
+  SELECT
+    'NOTE_' || LPAD(SEQ4()::string, 7, '0')                                AS NOTE_ID,
+    GET(ARRAY_CONSTRUCT('Rep Call Note','Medical Inquiry','Market Access Note'), UNIFORM(0,2,RANDOM()))::string AS DOC_TYPE,
+    CASE WHEN UNIFORM(1,100,RANDOM()) <= 3 THEN NULL
+         ELSE 'HCP_' || LPAD(UNIFORM(0,49999,RANDOM())::string, 6, '0') END AS HCP_ID,
+    GET(ARRAY_CONSTRUCT('Nordics','DACH','Benelux','Iberia','UK & Ireland'), UNIFORM(0,4,RANDOM()))::string AS REGION,
+    DATEADD('day', -UNIFORM(0,540,RANDOM()), CURRENT_DATE())               AS NOTE_DATE,
+    -- independent slot choices: 12 x 14 x 10 x 12 = 20,160 sentence structures
+    UNIFORM(0,11,RANDOM()) AS I_OPEN,
+    UNIFORM(0,13,RANDOM()) AS I_THEME,
+    UNIFORM(0,9 ,RANDOM()) AS I_DETAIL,
+    UNIFORM(0,11,RANDOM()) AS I_ASK,
+    -- injected entities multiply that further
+    GET(ARRAY_CONSTRUCT('Ozempic','Wegovy','Rybelsus','Saxenda','Norditropin','Tresiba'), UNIFORM(0,5,RANDOM()))::string AS PRODUCT,
+    GET(ARRAY_CONSTRUCT('Mounjaro','Zepbound','Trulicity','a biosimilar'), UNIFORM(0,3,RANDOM()))::string AS COMPETITOR,
+    GET(ARRAY_CONSTRUCT('Copenhagen','Aarhus','Stockholm','Gothenburg','Oslo',
+                        'Bergen','Helsinki','Malmo','Odense','Uppsala'), UNIFORM(0,9,RANDOM()))::string AS CITY,
+    GET(ARRAY_CONSTRUCT('Q1','Q2','Q3','Q4'), UNIFORM(0,3,RANDOM()))::string AS QTR,
+    UNIFORM(3,40,RANDOM())  AS N_PATIENTS,
+    UNIFORM(2,12,RANDOM())  AS N_WEEKS
+  FROM TABLE(GENERATOR(ROWCOUNT => 40000))
+)
 SELECT
-  'NOTE_' || LPAD(SEQ4()::string, 7, '0')                                AS NOTE_ID,
-  GET(ARRAY_CONSTRUCT('Rep Call Note','Medical Inquiry','Market Access Note'), UNIFORM(0,2,RANDOM()))::string AS DOC_TYPE,
-  CASE WHEN UNIFORM(1,100,RANDOM()) <= 3 THEN NULL
-       ELSE 'HCP_' || LPAD(UNIFORM(0,49999,RANDOM())::string, 6, '0') END AS HCP_ID,
-  GET(ARRAY_CONSTRUCT('Nordics','DACH','Benelux','Iberia','UK & Ireland'), UNIFORM(0,4,RANDOM()))::string AS REGION,
-  DATEADD('day', -UNIFORM(0,540,RANDOM()), CURRENT_DATE())               AS NOTE_DATE,
+  s.NOTE_ID, s.DOC_TYPE, s.HCP_ID, s.REGION, s.NOTE_DATE,
   CASE WHEN UNIFORM(1,100,RANDOM()) <= 2 THEN NULL ELSE
     GET(ARRAY_CONSTRUCT(
-      'HCP raised concerns about injection device usability for elderly obesity patients; requested a pen demo and simpler onboarding materials.',
-      'Discussed titration schedule for GLP-1 therapy; HCP wants clearer dosing guidance for patients switching from a competitor product.',
-      'Market access: local formulary review pending; reimbursement for the obesity indication is the main barrier to new starts this quarter.',
-      'Medical inquiry regarding gastrointestinal side effects and mitigation strategies during dose escalation.',
-      'HCP reports strong patient interest in the weight-management program but cites supply concerns affecting continuity of care.',
-      'Competitive pressure noted: a rival GLP-1 is being promoted heavily; HCP asked for head-to-head efficacy and adherence data.',
-      'Patient adherence discussion: missed-dose patterns linked to device handling; support intervention recommended.',
-      'Access note: payer requires prior authorization; HCP frustrated with the paperwork burden slowing initiation.',
-      'Positive feedback on cardiovascular outcomes data; HCP open to expanding use in high-risk diabetes patients.',
-      'Inquiry about pediatric growth-disorder dosing and long-term safety monitoring.',
-      'Nordics territory: strong uptake in endocrinology but GP segment lags; requested targeted educational webinars.',
-      'HCP declined new detailing due to formulary exclusion; asked to be re-contacted after the next pharmacy and therapeutics committee.',
-      'Reported a stockout at the local pharmacy; concerned about patients pausing therapy and losing progress.',
-      'Enthusiastic about real-world evidence; would consider a speaker program on obesity management in primary care.'
-    ), UNIFORM(0,13,RANDOM()))::string END                               AS NOTE_TEXT
-FROM TABLE(GENERATOR(ROWCOUNT => 40000));
+      'Call with ' || nm || ' (' || sp || ', ' || s.CITY || ').',
+      'Follow-up visit to the ' || s.CITY || ' clinic; primary contact ' || nm || '.',
+      'Medical information request logged by ' || nm || '.',
+      nm || ' joined the ' || s.CITY || ' advisory session.',
+      'Brief corridor conversation with ' || nm || ' after ' || sp || ' rounds.',
+      'Scheduled review with ' || nm || ' covering ' || s.QTR || ' performance.',
+      'Virtual meeting with ' || nm || '; screen-shared the latest ' || sp || ' data.',
+      'Unplanned drop-in at the ' || s.CITY || ' practice, spoke with ' || nm || '.',
+      nm || ' asked that this note be routed to medical affairs.',
+      'Territory visit in ' || s.CITY || '. Met ' || nm || '.',
+      'Second call this quarter with ' || nm || '.',
+      'Post-congress follow-up with ' || nm || ' (' || sp || ').'
+    ), s.I_OPEN)::string
+    || ' ' ||
+    GET(ARRAY_CONSTRUCT(
+      'Main topic was ' || s.PRODUCT || ' initiation in patients who have plateaued on diet and exercise alone.',
+      'Raised device usability concerns with the ' || s.PRODUCT || ' pen, particularly for elderly patients.',
+      'Wants head-to-head efficacy and adherence data versus ' || s.COMPETITOR || '.',
+      'Competitive pressure from ' || s.COMPETITOR || ' is intense in this account, which is winning new starts.',
+      'Asked for clearer titration guidance when switching patients from ' || s.COMPETITOR || ' to ' || s.PRODUCT || '.',
+      'Reported gastrointestinal side effects during ' || s.PRODUCT || ' dose escalation and asked about mitigation.',
+      'Formulary status for ' || s.PRODUCT || ' is still under review, which is blocking new prescriptions.',
+      'Payer requires prior authorisation for ' || s.PRODUCT || '; the paperwork burden is slowing initiation.',
+      'Flagged a ' || s.PRODUCT || ' stockout at the local pharmacy and is worried about therapy interruption.',
+      'Positive on the cardiovascular outcomes data and open to using ' || s.PRODUCT || ' in higher-risk patients.',
+      'Discussed long-term safety monitoring for ' || s.PRODUCT || ' in the paediatric growth-disorder setting.',
+      'Adherence is the core issue: missed-dose patterns on ' || s.PRODUCT || ' appear linked to injection technique.',
+      'Interested in real-world evidence for ' || s.PRODUCT || ' in primary care weight management.',
+      'Reimbursement for the obesity indication remains the main barrier to ' || s.PRODUCT || ' uptake.'
+    ), s.I_THEME)::string
+    || ' ' ||
+    GET(ARRAY_CONSTRUCT(
+      'Approximately ' || s.N_PATIENTS::string || ' patients in the practice could be candidates.',
+      'Roughly ' || s.N_PATIENTS::string || ' patients are on therapy, averaging ' || s.N_WEEKS::string || ' weeks duration.',
+      'Reports ' || s.N_PATIENTS::string || ' discontinuations in the last ' || s.N_WEEKS::string || ' weeks.',
+      'Uptake in ' || sp || ' is ahead of plan while the GP segment lags.',
+      'Expects a decision after the next pharmacy and therapeutics committee in ' || s.QTR || '.',
+      'Volume has been flat for ' || s.N_WEEKS::string || ' weeks despite increased call frequency.',
+      'Nurse-led follow-up has improved persistence in about ' || s.N_PATIENTS::string || ' patients.',
+      'Patient interest is high but ' || s.N_PATIENTS::string || ' starts are on hold pending reimbursement.',
+      'Sees ' || s.N_PATIENTS::string || ' new referrals per month from the ' || s.CITY || ' network.',
+      s.QTR || ' targets look achievable if supply stabilises.'
+    ), s.I_DETAIL)::string
+    || ' ' ||
+    GET(ARRAY_CONSTRUCT(
+      'Requested a pen demonstration and simplified onboarding materials.',
+      'Action: send the head-to-head data pack and book a follow-up.',
+      'Asked to be re-contacted after the formulary review.',
+      'Wants a targeted educational webinar for the GP segment.',
+      'Escalating to market access for payer support.',
+      'Would consider participating in a speaker programme.',
+      'Requested a medical affairs contact and declined to discuss further.',
+      'No further action; declined additional detailing this cycle.',
+      'Agreed to a nurse-training session on injection technique.',
+      'Follow-up scheduled in ' || s.N_WEEKS::string || ' weeks.',
+      'Asked for local health-economic data to support the business case.',
+      'Referred the adherence question to the patient support programme team.'
+    ), s.I_ASK)::string
+  END                                                                      AS NOTE_TEXT
+FROM seed s
+LEFT JOIN hcp h ON s.HCP_ID = h.HCP_ID,
+LATERAL (SELECT COALESCE(h.HCP_FULL_NAME, 'the HCP') AS nm,
+                LOWER(COALESCE(h.SPECIALTY, 'general practice')) AS sp) v;
 
 /* =====================================================================
    PROFILE — confirm tables + planted inconsistencies + total rows
