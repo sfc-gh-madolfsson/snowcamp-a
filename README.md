@@ -6,7 +6,7 @@
 1. [`setup/00_provision.sql`](setup/00_provision.sql)
 2. [`setup/01_data.sql`](setup/01_data.sql)
 
-**Gate tracker:** [open it live](https://htmlpreview.github.io/?https://raw.githubusercontent.com/madolfsson-snowflake/snowcamp-buildathon-track-a-agents/main/tracker.html) · or [view the file](tracker.html) &nbsp;|&nbsp; **Primer:** [how to prompt Cortex Code](shared/prompting-primer.md) &nbsp;|&nbsp; **AGENTS.md starter:** [shared/AGENTS.starter.md](shared/AGENTS.starter.md)
+**Gate tracker:** [open it live](https://htmlpreview.github.io/?https://raw.githubusercontent.com/sfc-gh-madolfsson/snowcamp-buildathon-track-a-agents/main/tracker.html) · or [view the file](tracker.html) &nbsp;|&nbsp; **Primer:** [how to prompt Cortex Code](shared/prompting-primer.md) &nbsp;|&nbsp; **AGENTS.md starter:** [shared/AGENTS.starter.md](shared/AGENTS.starter.md)
 
 ---
 
