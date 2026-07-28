@@ -6,7 +6,7 @@
 1. [`setup/00_provision.sql`](setup/00_provision.sql)
 2. [`setup/01_data.sql`](setup/01_data.sql)
 
-**Gate tracker:** [open it live](https://htmlpreview.github.io/?https://raw.githubusercontent.com/sfc-gh-madolfsson/snowcamp-buildathon-track-a-agents/main/tracker.html) - or [view the file](tracker.html) &nbsp;|&nbsp; **Primer:** [how to prompt Cortex Code](shared/prompting-primer.md)
+**Gate tracker:** [open it live](https://htmlpreview.github.io/?https://raw.githubusercontent.com/sfc-gh-madolfsson/snowcamp-buildathon-track-a-agents/main/tracker.html) - or [view the file](tracker.html) &nbsp;|&nbsp; **Primer:** [how to prompt Cortex Code](shared/prompting-primer.md) &nbsp;|&nbsp; **Skills:** [skills map](shared/skills-map.md)
 
 ---
 
@@ -35,35 +35,87 @@ Run [setup/00_provision.sql](setup/00_provision.sql) then [setup/01_data.sql](se
 
 ## Gates
 
-### G1 · Orient & set your rules
-**Achieve:** you start in **ACCOUNTADMIN** by default — no role switch needed. Build a mental map of the structured tables and the text notes.
-**Validate:** you can describe the grain of `HCP_MASTER`, `PRESCRIPTIONS`, and `FIELD_NOTES`, and you spotted the PII and the messy values.
-**Skills:** `/cortex-code-guide` `/sql-author`
+### G1 · Get to know your data  ·  *8 min*
+**Your task:** You've been handed commercial data across several domains and asked to build an agent on top of it. Before you build anything, get to know it. Build a mental map of the tables — what's in each one, what a single row represents, how they join. You should be able to describe exactly what's in these tables. Are there PII issues? Messy or inconsistent values? Investigate with Cortex Code and decide whether this data is actually ready to build an agent on.
 
-### G2 · Model the numbers (semantic view)
-**Achieve:** a governed semantic view in `ANALYTICS` (call it `NN_COMMERCIAL_SEMANTIC_VIEW`) with business dimensions (HCP, product, territory, tier, month) and metrics (total prescriptions, active prescribers, market penetration). Make it stand up to the messy tier/country values.
-**Validate:** the view validates, and Cortex Analyst answers *"which territories are below-average on penetration this quarter, and who are their top-tier HCPs?"* with sensible numbers.
-**Skills:** `/semantic-view`
+**Hints:**
+- Point Cortex Code at @SNOWCAMP_AGENTS.RAW so it reads real column names instead of guessing.
+- Ask for row counts, distinct values, and anything that looks wrong — not just a column list.
+- Whatever mess you find is deliberate. Note it now; you deal with it in the next gates.
 
-### G3 · Protect it (govern PII)
-**Achieve:** classify and mask the HCP PII (name, email) so only your admin role sees raw values — the agent must not leak identifiers.
-**Validate:** selecting the PII columns as a role without access returns masked values; as you, real values.
-**Skills:** `/data-governance`
+**Check yourself:** Describe the grain of HCP_MASTER, PRESCRIPTIONS and FIELD_NOTES in one line each, then name the PII columns and the messiest fields.
 
-### G4 · Unlock the text (Cortex Search)
-**Achieve:** a Cortex Search service over `FIELD_NOTES.NOTE_TEXT`, keeping `DOC_TYPE`, `HCP_ID`, `REGION`, `NOTE_DATE` as attributes; skip null text.
-**Validate:** searching a real theme (e.g. *"formulary access barriers"*) returns relevant notes with their doc type and HCP.
-**Skills:** `/search-optimization`
+**Gate:** You can explain what's in the data, and you've found the PII and the messy values.
 
-### G5 · Assemble & teach the agent
-**Achieve:** one agent (`NN_COMMERCIAL_AGENT`) with **two tools** — Cortex Analyst on the semantic view (numbers) and Cortex Search on the notes (narrative), each with a crisp description. Then set its **orchestration** (route numbers -> Analyst, qualitative -> Search, blend for mixed questions) and **response** instructions (one-line answer, metrics table, 2-3 cited quotes, a next action). Test in Snowflake Intelligence.
-**Validate:** the blended Nordics question uses **both** tools and returns the instructed structure with citations. (If Analyst errors on permissions, grant `REFERENCES` on the semantic view — see provision file, section 4.)
-**Skills:** `/cortex-agent` `/agent-optimization` `/cortex-chart-customization`
+**Skills that help:** `/sql-author` `/data-quality` `/cortex-code-guide`
 
-### GF · Ship it — Streamlit on SPCS
-**Achieve:** a Streamlit-in-Snowflake app on the **container runtime** — your choice of a **results view** (a chat box to the agent + a KPI panel from the semantic view) or a **full app** (add territory/tier filters, drill-downs). Deploy per [shared/streamlit-spcs-deploy.md](shared/streamlit-spcs-deploy.md).
-**Validate:** the app is live on the container runtime (Projects > Streamlit) and the in-app chat returns the agent's answer.
-**Skills:** `/developing-with-streamlit-in-snowflake` `/cortex-chart-customization`
+### G2 · Teach it your business language  ·  *12 min*
+**Your task:** Your agent will get asked number questions — how many prescriptions, which territories are underperforming. It can't answer those reliably against raw messy tables, so give it a model to reason over. Build a semantic view using the language a commercial team actually speaks (HCP, product, territory, tier, month; total prescriptions, active prescribers, market penetration), validate it, and make sure the messy tier and country values you found don't skew the numbers.
+
+**Hints:**
+- Describe the business concepts you want — not SQL — and let Cortex Code build and validate the view.
+- If numbers look strange, it's the messy tier/country values. Ask it to standardize them inside the view.
+- Name it ANALYTICS.NN_COMMERCIAL_SEMANTIC_VIEW so later gates can find it.
+
+**Check yourself:** Ask it in plain English: which territories are below average on penetration this quarter, and who are their top-tier HCPs?
+
+**Gate:** The semantic view validates and Cortex Analyst answers a real business question sensibly.
+
+**Skills that help:** `/semantic-view`
+
+### G3 · Lock down the PII first  ·  *8 min*
+**Your task:** You spotted personal data in Gate 1 — names and emails of real prescribers. An agent that can read anything can also repeat anything, so protect it before you wire it up. Work out what's actually sensitive, mask it so only you can see raw values, and then prove the mask does what you think it does.
+
+**Hints:**
+- Describe the outcome — 'mask HCP names and emails from anyone who isn't me' — and let it write and apply the policy.
+- Proving it matters more than creating it. A policy you haven't tested is a policy you don't have.
+
+**Check yourself:** Read the PII columns as a role without access, then as yourself, and compare.
+
+**Gate:** PII is classified and masked — masked for others, readable for you.
+
+**Skills that help:** `/data-governance`
+
+### G4 · Make the free text searchable  ·  *10 min*
+**Your task:** Half of what your field team needs isn't in a table at all — it's buried in 40,000 rep call notes, medical inquiries and market-access notes. Make that text searchable so your agent can actually quote it. Stand up a Cortex Search service over the notes, keep the attributes that matter for filtering and citation, and test it with a question a real rep would ask.
+
+**Hints:**
+- Point search at the note text and keep DOC_TYPE, HCP_ID, REGION and NOTE_DATE as attributes; skip the empty notes.
+- Test with a theme rather than an exact keyword — then judge whether the top hits are genuinely about it.
+
+**Check yourself:** Search something like 'formulary access barriers' and check the top 5 are really about market access, with their doc type and HCP.
+
+**Gate:** Your search service returns relevant notes with useful attributes.
+
+**Skills that help:** `/search-optimization`
+
+### G5 · Assemble the copilot  ·  *15 min*
+**Your task:** Now put it together. Build one agent that can reach into both worlds: the semantic view when someone wants numbers, the notes when they want to know why. Give each tool a description clear enough that the agent reliably picks the right one, teach it how to route and blend the two, and shape how it answers — lead with the answer, show the numbers, quote the notes, recommend a next action. Then go try to break it in Snowflake Intelligence.
+
+**Hints:**
+- Three layers: the tools it can call, the orchestration that decides which to use, and the response format. Build them in that order.
+- Blended questions are the real test — numbers first to find who, then notes to explain why.
+- If the Analyst tool errors on permissions, it needs REFERENCES on the semantic view (provision file, section 4).
+
+**Check yourself:** Ask: who are my top-tier underperforming HCPs in the Nordics, and what have reps noted about them? Watch which tools it calls.
+
+**Gate:** One question makes it use both tools and answer in your instructed format, with citations.
+
+**Skills that help:** `/cortex-agent` `/agent-optimization` `/cortex-chart-customization`
+
+### GF · Put it in someone's hands  ·  *7 min*
+**Your task:** An agent nobody can reach isn't much use. Ship it as a Streamlit app running on the container runtime (SPCS). How far you take it is your call — a focused results view with a chat box and a few KPIs, or a full app with territory and tier filters and drill-downs. Get it deployed and open the URL.
+
+**Hints:**
+- Deploy on the container runtime: RUNTIME_NAME='SYSTEM$ST_CONTAINER_RUNTIME_PY3_11', COMPUTE_POOL=SNOWCAMP_AGENTS_POOL, QUERY_WAREHOUSE=SNOWCAMP_AGENTS_WH.
+- Describe the UI you want, deploy it, then iterate — add one filter and redeploy.
+- First launch can be slow while the compute pool wakes up. That's normal.
+
+**Check yourself:** Open the app URL and ask your Nordics question in the app's own chat.
+
+**Gate:** The app is live on the container runtime and answers in the UI.
+
+**Skills that help:** `/developing-with-streamlit-in-snowflake`
 
 ---
 
