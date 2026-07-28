@@ -6,7 +6,7 @@
 1. [`setup/00_provision.sql`](setup/00_provision.sql)
 2. [`setup/01_data.sql`](setup/01_data.sql)
 
-**Gate tracker:** [open it live](https://htmlpreview.github.io/?https://raw.githubusercontent.com/sfc-gh-madolfsson/snowcamp-buildathon-track-a-agents/main/tracker.html) - or [view the file](tracker.html) &nbsp;|&nbsp; **Primer:** [how to prompt Cortex Code](shared/prompting-primer.md) &nbsp;|&nbsp; **AGENTS.md (optional):** [shared/AGENTS.starter.md](shared/AGENTS.starter.md)
+**Gate tracker:** [open it live](https://htmlpreview.github.io/?https://raw.githubusercontent.com/sfc-gh-madolfsson/snowcamp-buildathon-track-a-agents/main/tracker.html) - or [view the file](tracker.html) &nbsp;|&nbsp; **Primer:** [how to prompt Cortex Code](shared/prompting-primer.md)
 
 ---
 
@@ -30,8 +30,6 @@ Novo Nordisk field teams ask the same questions every week: *who* to engage and 
 
 ## Setup (once)
 Run [setup/00_provision.sql](setup/00_provision.sql) then [setup/01_data.sql](setup/01_data.sql) — open each file, copy, paste into a Snowsight SQL worksheet, and Run All.
-
-> **Tip (optional):** you can set conventions once in an `AGENTS.md` at your Workspace root (start from [shared/AGENTS.starter.md](shared/AGENTS.starter.md)) so Cortex Code always uses your database/warehouse, fully-qualifies objects, and protects PII. Not required — skip it and just tell Cortex Code your rules as you go.
 
 ---
 

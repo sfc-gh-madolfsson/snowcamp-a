@@ -12,9 +12,6 @@ This is a **buildathon**, not a script to follow. Each gate tells you *what* to 
 ## Using skills
 Type `/` to see skills. A skill like `/data-governance` or `/semantic-view` primes Cortex Code with a specialized workflow. The gate hints suggest one or two — but you're free to use others, or none. At the end there's a **bonus**: ask Cortex Code to package your whole workflow into your *own* skill (`/skill-development`) so you can rerun it with one command.
 
-## Optional — set conventions once with AGENTS.md
-Not required. If you like, create an `AGENTS.md` at your workspace root (start from `shared/AGENTS.starter.md`) so Cortex Code always uses your database/warehouse, fully-qualifies objects, and protects PII without you repeating it each prompt. Or just tell it your rules as you go — either works.
-
 ## Gotchas worth knowing
 - **Role:** everyone runs as **ACCOUNTADMIN** by default in this event — no role switching needed. If something comes back "not authorized," it's usually a missing **grant** (ask Cortex Code to add it), not the role.
 - **Fully-qualify:** if session context (`USE SCHEMA`) doesn't stick in your client, prefer fully-qualified names like `DB.SCHEMA.TABLE`.
