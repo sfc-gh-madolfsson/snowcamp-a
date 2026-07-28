@@ -40,7 +40,7 @@ CREATE COMPUTE POOL IF NOT EXISTS SNOWCAMP_AGENTS_POOL
 
 ------------------------------------------------------------------------
 -- 4. Semantic view REFERENCES grant (Cortex Analyst agent gotcha).
---    Run AFTER you create the semantic view in Gate 2. A Cortex Analyst
+--    Run AFTER you create the semantic view (requirement 1). A Cortex Analyst
 --    agent needs REFERENCES (not just SELECT) on the semantic view.
 --    Uncomment and set <agent_role> if you build the agent under a non-admin role:
 ------------------------------------------------------------------------

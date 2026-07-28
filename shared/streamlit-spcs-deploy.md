@@ -1,11 +1,11 @@
-# Final Gate — Ship a Streamlit-in-Snowflake app on SPCS
+# Ship a Streamlit-in-Snowflake app on SPCS
 
 Every track ends the same way: **turn your work into a Streamlit-in-Snowflake app running on Snowpark Container Services (SPCS)** — no Docker, no image build, all inside Snowsight. You choose the ambition level:
 
 - **Option 1 — Results view (recommended if you're tight on time):** one focused page that visualizes what your track produced.
 - **Option 2 — Full app:** a richer, multi-page app with filters, drill-downs, and actions.
 
-Both options deploy the same way. The point of the gate is the **deployment on the container runtime**, not UI polish.
+Both options deploy the same way. The point is the **deployment on the container runtime** — though this time the app is also where you show your requirements were met.
 
 ---
 
@@ -30,7 +30,7 @@ Your provisioning script already created the pool and warehouse, so these exist.
 
 Skill hints: `/developing-with-streamlit-in-snowflake` and `/cortex-chart-customization`.
 
-## Validate (Final Gate pass condition)
+## Validate
 - The app is **live on the container runtime** (visible under Projects > Streamlit) and opens at its URL.
 - It renders your track's result (or responds in the UI).
 - If it's slow to open the first time, the **compute pool is resuming** — check `DESCRIBE COMPUTE POOL <your_pool>` and wait for `ACTIVE`/`IDLE`.
