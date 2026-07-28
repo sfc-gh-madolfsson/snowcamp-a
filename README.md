@@ -1,12 +1,12 @@
 # Track A — AI Agents · "Commercial Field Copilot"
 
-> **Snow Camp 2026 · Cortex Code Buildathon.** Everything runs inside Snowsight — **nothing to download.** Open each SQL file below, click the **copy icon** (top-right), paste into a Snowsight **SQL worksheet**, and **Run All**.
+> **Snow Camp 2026 - Cortex Code Buildathon.** Everything runs inside Snowsight - **nothing to download.** Open each SQL file below, click the **copy icon** (top-right), paste into a Snowsight **SQL worksheet**, and **Run All**.
 
-**Setup — run in order:**
+**Setup - run in order:**
 1. [`setup/00_provision.sql`](setup/00_provision.sql)
 2. [`setup/01_data.sql`](setup/01_data.sql)
 
-**Gate tracker:** [open it live](https://htmlpreview.github.io/?https://raw.githubusercontent.com/sfc-gh-madolfsson/snowcamp-buildathon-track-a-agents/main/tracker.html) · or [view the file](tracker.html) &nbsp;|&nbsp; **Primer:** [how to prompt Cortex Code](shared/prompting-primer.md) &nbsp;|&nbsp; **AGENTS.md starter:** [shared/AGENTS.starter.md](shared/AGENTS.starter.md)
+**Gate tracker:** [open it live](https://htmlpreview.github.io/?https://raw.githubusercontent.com/sfc-gh-madolfsson/snowcamp-buildathon-track-a-agents/main/tracker.html) - or [view the file](tracker.html) &nbsp;|&nbsp; **Primer:** [how to prompt Cortex Code](shared/prompting-primer.md) &nbsp;|&nbsp; **AGENTS.md starter:** [shared/AGENTS.starter.md](shared/AGENTS.starter.md)
 
 ---
 
@@ -29,15 +29,21 @@ Novo Nordisk field teams ask the same questions every week: *who* to engage and 
 | `FIELD_NOTES` | 40k | **Unstructured**: rep call notes, medical inquiries, market-access notes. Some null text/HCP |
 
 ## Setup (once)
-1. Run [setup/00_provision.sql](setup/00_provision.sql) then [setup/01_data.sql](setup/01_data.sql) (copy/paste from the GitHub page).
-2. In your Workspace, create an `AGENTS.md` from [shared/AGENTS.starter.md](shared/AGENTS.starter.md) with `SNOWCAMP_AGENTS` as your database.
+Run [setup/00_provision.sql](setup/00_provision.sql) then [setup/01_data.sql](setup/01_data.sql) — open each file, copy, paste into a Snowsight SQL worksheet, and Run All.
+
+## Pre-req — create your `AGENTS.md` (do this first, before the gates)
+**What it is & why:** `AGENTS.md` is a plain-markdown file at your Workspace root that Cortex Code reads at the start of *every* conversation. It's how you set your conventions **once** — which database/warehouse to use, to fully-qualify object names, to explain SQL before running it, to protect PII — instead of repeating them in each prompt. This isn't part of a normal ad-hoc session; for the buildathon we treat it as a given first step so Cortex Code works the way you want from the start.
+
+**How (pick one):**
+- Ask Cortex Code to create it — e.g. *"Create an AGENTS.md at my workspace root: use database `SNOWCAMP_AGENTS` and warehouse `SNOWCAMP_AGENTS_WH`, always fully-qualify objects as DB.SCHEMA.OBJECT, explain SQL before running it, and never expose unmasked HCP PII."*
+- Or copy [shared/AGENTS.starter.md](shared/AGENTS.starter.md) into a new file named `AGENTS.md` at your workspace root and fill in the placeholders.
 
 ---
 
 ## Gates
 
 ### G1 · Orient & set your rules
-**Achieve:** you start in **ACCOUNTADMIN** by default — no role switch needed. Make the session yours: create your `AGENTS.md`, then build a mental map of the structured tables and the text notes.
+**Achieve:** you start in **ACCOUNTADMIN** by default — no role switch needed (with your `AGENTS.md` from the pre-req already in place). Build a mental map of the structured tables and the text notes.
 **Validate:** you can describe the grain of `HCP_MASTER`, `PRESCRIPTIONS`, and `FIELD_NOTES`, and you spotted the PII and the messy values.
 **Skills:** `/cortex-code-guide` `/sql-author`
 

@@ -12,8 +12,8 @@ This is a **buildathon**, not a script to follow. Each gate tells you *what* to 
 ## Using skills
 Type `/` to see skills. A skill like `/data-governance` or `/semantic-view` primes Cortex Code with a specialized workflow. The gate hints suggest one or two — but you're free to use others, or none.
 
-## Set your rules once (AGENTS.md)
-Create an `AGENTS.md` at your workspace root (start from `shared/AGENTS.starter.md`). Cortex Code reads it every turn, so you don't repeat conventions like "always fully-qualify objects" or "explain SQL before running it."
+## First step (pre-req) — set your rules once with AGENTS.md
+Before the gates, create an `AGENTS.md` at your workspace root (start from `shared/AGENTS.starter.md`). Cortex Code reads it every turn, so you don't repeat conventions like "always fully-qualify objects," "use warehouse X," or "explain SQL before running it." It's a Cortex Code concept, not part of a normal Snowsight session — so we call it out as a given first step. You can also just ask Cortex Code to create it for you.
 
 ## Gotchas worth knowing
 - **Role:** everyone runs as **ACCOUNTADMIN** by default in this event — no role switching needed. If something comes back "not authorized," it's usually a missing **grant** (ask Cortex Code to add it), not the role.
