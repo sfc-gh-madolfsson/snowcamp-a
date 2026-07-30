@@ -15,41 +15,19 @@
    Idempotent: CREATE OR REPLACE.
    ===================================================================== */
 
-USE ROLE ACCOUNTADMIN;   -- or your admin-like role
+USE ROLE ACCOUNTADMIN;
 
-------------------------------------------------------------------------
--- 1. Database + schemas FIRST. Nothing below can block them, so the
---    data build cannot fail with "database does not exist".
-------------------------------------------------------------------------
-CREATE DATABASE IF NOT EXISTS SNOWCAMP_AGENTS;
-CREATE SCHEMA   IF NOT EXISTS SNOWCAMP_AGENTS.RAW;
-CREATE SCHEMA   IF NOT EXISTS SNOWCAMP_AGENTS.ANALYTICS;
-CREATE SCHEMA   IF NOT EXISTS SNOWCAMP_AGENTS.APP;
-
-------------------------------------------------------------------------
--- 2. One warehouse for generation and for the lab. Tries MEDIUM, falls
---    back to XSMALL if the account caps warehouse size, so a size limit
---    can never abort the script.
-------------------------------------------------------------------------
-EXECUTE IMMEDIATE $$
-BEGIN
-  CREATE WAREHOUSE IF NOT EXISTS SNOWCAMP_AGENTS_WH WAREHOUSE_SIZE = 'MEDIUM'
-    AUTO_SUSPEND = 60 AUTO_RESUME = TRUE INITIALLY_SUSPENDED = FALSE;
-  RETURN 'warehouse SNOWCAMP_AGENTS_WH ready (MEDIUM)';
-EXCEPTION WHEN OTHER THEN
-  BEGIN
-    CREATE WAREHOUSE IF NOT EXISTS SNOWCAMP_AGENTS_WH WAREHOUSE_SIZE = 'XSMALL'
-      AUTO_SUSPEND = 60 AUTO_RESUME = TRUE INITIALLY_SUSPENDED = FALSE;
-    RETURN 'warehouse SNOWCAMP_AGENTS_WH ready (XSMALL fallback)';
-  EXCEPTION WHEN OTHER THEN
-    RETURN 'could not create SNOWCAMP_AGENTS_WH: ' || SQLERRM;
-  END;
-END;
-$$;
-
+-- Environment: warehouse, database, schemas. Plain SQL, runs top to bottom.
+CREATE WAREHOUSE IF NOT EXISTS SNOWCAMP_AGENTS_WH
+  WAREHOUSE_SIZE = 'XSMALL' AUTO_SUSPEND = 120 AUTO_RESUME = TRUE INITIALLY_SUSPENDED = FALSE;
 USE WAREHOUSE SNOWCAMP_AGENTS_WH;
-USE DATABASE  SNOWCAMP_AGENTS;
-USE SCHEMA    SNOWCAMP_AGENTS.RAW;
+
+CREATE DATABASE IF NOT EXISTS SNOWCAMP_AGENTS;
+USE DATABASE SNOWCAMP_AGENTS;
+CREATE SCHEMA IF NOT EXISTS SNOWCAMP_AGENTS.RAW;
+CREATE SCHEMA IF NOT EXISTS SNOWCAMP_AGENTS.ANALYTICS;
+CREATE SCHEMA IF NOT EXISTS SNOWCAMP_AGENTS.APP;
+USE SCHEMA SNOWCAMP_AGENTS.RAW;
 
 /* =====================================================================
    HCP_MASTER (50,000 + 500 duplicates) — prescriber profile + PII
