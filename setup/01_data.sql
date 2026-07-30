@@ -17,19 +17,39 @@
 
 USE ROLE ACCOUNTADMIN;   -- or your admin-like role
 
--- Fast, disposable generation warehouse (dropped at the end)
-CREATE OR REPLACE WAREHOUSE SNOWCAMP_GEN_WH
-  WAREHOUSE_SIZE = 'LARGE' AUTO_SUSPEND = 60 AUTO_RESUME = TRUE INITIALLY_SUSPENDED = FALSE;
-USE WAREHOUSE SNOWCAMP_GEN_WH;
-
--- Lab warehouse (created here too so 01 is safe to run standalone)
-CREATE WAREHOUSE IF NOT EXISTS SNOWCAMP_AGENTS_WH
-  WAREHOUSE_SIZE = 'MEDIUM' AUTO_SUSPEND = 60 AUTO_RESUME = TRUE INITIALLY_SUSPENDED = FALSE;
-
+------------------------------------------------------------------------
+-- 1. Database + schemas FIRST. Nothing below can block them, so the
+--    data build cannot fail with "database does not exist".
+------------------------------------------------------------------------
 CREATE DATABASE IF NOT EXISTS SNOWCAMP_AGENTS;
-CREATE SCHEMA IF NOT EXISTS SNOWCAMP_AGENTS.RAW;
-CREATE SCHEMA IF NOT EXISTS SNOWCAMP_AGENTS.ANALYTICS;
-CREATE SCHEMA IF NOT EXISTS SNOWCAMP_AGENTS.APP;
+CREATE SCHEMA   IF NOT EXISTS SNOWCAMP_AGENTS.RAW;
+CREATE SCHEMA   IF NOT EXISTS SNOWCAMP_AGENTS.ANALYTICS;
+CREATE SCHEMA   IF NOT EXISTS SNOWCAMP_AGENTS.APP;
+
+------------------------------------------------------------------------
+-- 2. One warehouse for generation and for the lab. Tries MEDIUM, falls
+--    back to XSMALL if the account caps warehouse size, so a size limit
+--    can never abort the script.
+------------------------------------------------------------------------
+EXECUTE IMMEDIATE $$
+BEGIN
+  CREATE WAREHOUSE IF NOT EXISTS SNOWCAMP_AGENTS_WH WAREHOUSE_SIZE = 'MEDIUM'
+    AUTO_SUSPEND = 60 AUTO_RESUME = TRUE INITIALLY_SUSPENDED = FALSE;
+  RETURN 'warehouse SNOWCAMP_AGENTS_WH ready (MEDIUM)';
+EXCEPTION WHEN OTHER THEN
+  BEGIN
+    CREATE WAREHOUSE IF NOT EXISTS SNOWCAMP_AGENTS_WH WAREHOUSE_SIZE = 'XSMALL'
+      AUTO_SUSPEND = 60 AUTO_RESUME = TRUE INITIALLY_SUSPENDED = FALSE;
+    RETURN 'warehouse SNOWCAMP_AGENTS_WH ready (XSMALL fallback)';
+  EXCEPTION WHEN OTHER THEN
+    RETURN 'could not create SNOWCAMP_AGENTS_WH: ' || SQLERRM;
+  END;
+END;
+$$;
+
+USE WAREHOUSE SNOWCAMP_AGENTS_WH;
+USE DATABASE  SNOWCAMP_AGENTS;
+USE SCHEMA    SNOWCAMP_AGENTS.RAW;
 
 /* =====================================================================
    HCP_MASTER (50,000 + 500 duplicates) — prescriber profile + PII
@@ -221,6 +241,3 @@ UNION ALL SELECT 'HCP_TARGETING', COUNT(*) FROM SNOWCAMP_AGENTS.RAW.HCP_TARGETIN
 UNION ALL SELECT 'FIELD_NOTES', COUNT(*) FROM SNOWCAMP_AGENTS.RAW.FIELD_NOTES
 ORDER BY row_count DESC;
 
--- Tidy up: drop the disposable generation warehouse, leave the MEDIUM lab warehouse.
-USE WAREHOUSE SNOWCAMP_AGENTS_WH;
-DROP WAREHOUSE IF EXISTS SNOWCAMP_GEN_WH;
